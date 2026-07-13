@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multi Time Zone Digital Clock</title>
+  <style>
+    :root {
+      --bg: #0f1724;
+      --card: #0b1220;
+      --accent: #06b6d4;
+      --muted: #9aa6b2;
+      --glass: rgba(255,255,255,0.03);
+    }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #071021 0%, #081224 100%);
+      color: #e6eef6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      box-sizing: border-box;
+    }
+    .app {
+      width: 100%;
+      max-width: 980px;
+    }
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--accent);
+      letter-spacing: 0.4px;
+    }
+    p.lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .controls {
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    select, input[type="text"], button {
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.04);
+      color: #e6eef6;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(90deg,var(--accent),#60a5fa);
+      color: #041023;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap: 14px;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .tz-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 8px;
+    }
+    .tz-name {
+      font-weight:700;
+      font-size:14px;
+    }
+    .tz-offset {
+      font-size:12px;
+      color: var(--muted);
+    }
+    .time {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+    .date {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .small {
+      font-size:12px;
+      color: var(--muted);
+    }
+    .actions {
+      display:flex;
+      gap:8px;
+      justify-content:flex-end;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.04);
+      color: var(--muted);
+      padding:6px 8px;
+      border-radius:8px;
+      font-size:12px;
+    }
+    footer {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    @media (max-width:420px) {
+      .time { font-size:22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Multi Time Zone Clock</h1>
+        <p class="lead">Current time in multiple time zones — updates every second.</p>
+      </div>
+      <div class="controls" aria-hidden="false">
+        <select id="presetSelect" title="Choose a preset timezone">
+          <option value="">— Add preset —</option>
+        </select>
+        <input id="tzInput" type="text" placeholder="Or paste an IANA zone (e.g. America/New_York)" />
+        <button id="addBtn">Add</button>
+      </div>
+    </header>
+
+    <main>
+      <div id="grid" class="grid" aria-live="polite"></div>
+    </main>
+
+    <footer>
+      Tip: Use IANA time zone names like "Europe/London", "Asia/Tokyo", or "America/Los_Angeles".
+    </footer>
+  </div>
+
+  <script>
+    // Popular IANA time zones (short list). You can add more as needed.
+    const commonTimeZones = [
+      "UTC",
+      "Europe/London",
+      "Europe/Paris",
+      "Europe/Berlin",
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "America/Sao_Paulo",
+      "Asia/Shanghai",
+      "Asia/Hong_Kong",
+      "Asia/Tokyo",
+      "Asia/Kolkata",
+      "Asia/Singapore",
+      "Australia/Sydney",
+      "Pacific/Auckland"
+    ];
+
+    const grid = document.getElementById('grid');
+    const presetSelect = document.getElementById('presetSelect');
+    const tzInput = document.getElementById('tzInput');
+    const addBtn = document.getElementById('addBtn');
+
+    // populate presets
+    for (const tz of commonTimeZones) {
+      const opt = document.createElement('option');
+      opt.value = tz;
+      opt.textContent = tz;
+      presetSelect.appendChild(opt);
+    }
+
+    // maintain list of active zones
+    const zones = new Map();
+
+    function createCard(timeZone) {
+      const id = 'tz-' + btoa(timeZone).replace(/=/g,'').slice(0,12);
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.id = id;
+
+      const row = document.createElement('div');
+      row.className = 'tz-row';
+
+      const left = document.createElement('div');
+      const name = document.createElement('div');
+      name.className = 'tz-name';
+      name.textContent = timeZone;
+      left.appendChild(name);
+      const offset = document.createElement('div');
+      offset.className = 'tz-offset small';
+      offset.textContent = ''; // filled in update
+      left.appendChild(offset);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn-ghost';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', () => {
+        zones.delete(timeZone);
+        card.remove();
+      });
+      actions.appendChild(removeBtn);
+
+      row.appendChild(left);
+      row.appendChild(actions);
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'time';
+      timeEl.textContent = '';
+
+      const dateEl = document.createElement('div');
+      dateEl.className = 'date';
+      dateEl.textContent = '';
+
+      card.appendChild(row);
+      card.appendChild(timeEl);
+      card.appendChild(dateEl);
+
+      return { card, timeEl, dateEl, offsetEl: offset };
+    }
+
+    // Add a time zone to the UI and start tracking
+    function addZone(timeZone) {
+      if (!timeZone) return;
+      if (zones.has(timeZone)) {
+        alert('Zone already added.');
+        return;
+      }
+      // Try to format once to detect invalid zones
+      try {
+        // Use Intl.DateTimeFormat to validate and get the offset string
+        new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric' }).format();
+      } catch (e) {
+        alert('Invalid time zone: ' + timeZone);
+        return;
+      }
+
+      const { card, timeEl, dateEl, offsetEl } = createCard(timeZone);
+      grid.appendChild(card);
+      zones.set(timeZone, { timeEl, dateEl, offsetEl });
+      renderOnce(timeZone);
+    }
+
+    // Render a single zone (update time and date)
+    function renderOnce(timeZone) {
+      const entry = zones.get(timeZone);
+      if (!entry) return;
+      const now = new Date();
+
+      // Time and date formatting options
+      const timeFmt = new Intl.DateTimeFormat([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone
+      });
+      const dateFmt = new Intl.DateTimeFormat([], {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        timeZone
+      });
+
+      // For offset display: compute hours offset from UTC
+      const tzDate = new Date(now.toLocaleString('en-US', { timeZone }));
+      const offsetMinutes = (tzDate.getTime() - now.getTime()) / (1000 * 60);
+      const offsetHours = Math.round(offsetMinutes / 60 * 100) / 100;
+      const sign = offsetHours >= 0 ? '+' : '-';
+      const absH = Math.abs(offsetHours);
+      const hh = Math.floor(absH);
+      const mm = Math.round((absH - hh) * 60);
+      const offsetText = `UTC${sign}${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+
+      entry.timeEl.textContent = timeFmt.format(now);
+      entry.dateEl.textContent = dateFmt.format(now);
+      entry.offsetEl.textContent = offsetText;
+    }
+
+    // Update loop
+    setInterval(() => {
+      for (const tz of zones.keys()) {
+        renderOnce(tz);
+      }
+    }, 1000);
+
+    // initial presets
+    const defaults = ["UTC","America/New_York","Europe/London","Asia/Tokyo","Australia/Sydney"];
+    for (const d of defaults) addZone(d);
+
+    // UI events
+    addBtn.addEventListener('click', () => {
+      const tz = (tzInput.value || presetSelect.value || '').trim();
+      addZone(tz);
+      tzInput.value = '';
+      presetSelect.value = '';
+    });
+
+    presetSelect.addEventListener('change', () => {
+      const tz = presetSelect.value;
+      if (tz) {
+        addZone(tz);
+        presetSelect.value = '';
+      }
+    });
+
+    // allow Enter in the input
+    tzInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        addBtn.click();
+      }
+    });
+
+    // accessibility: focus the input on load
+    window.addEventListener('load', () => tzInput.focus());
+  </script>
+</body>
+</html>

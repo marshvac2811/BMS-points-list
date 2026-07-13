@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <rect width="100%" height="100%" fill="#071021" rx="12"/>
+  <g transform="translate(60,60)">
+    <text x="0" y="0" fill="#06b6d4" font-family="Arial" font-size="28">Multi Time Zone Clock</text>
+    <g transform="translate(0,36)">
+      <!-- Card 1 -->
+      <rect x="0" y="0" width="320" height="110" rx="12" fill="#0b1220" stroke="#0b1220"/>
+      <text x="16" y="28" fill="#e6eef6" font-size="14" font-weight="700">UTC</text>
+      <text x="16" y="60" fill="#e6eef6" font-family="monospace" font-size="28">14:23:07</text>
+      <text x="16" y="86" fill="#9aa6b2" font-size="12">UTC+00:00 · Tue, 14 Jul 2026</text>
+
+      <!-- Card 2 -->
+      <rect x="360" y="0" width="320" height="110" rx="12" fill="#0b1220" stroke="#0b1220"/>
+      <text x="376" y="28" fill="#e6eef6" font-size="14" font-weight="700">America/New_York</text>
+      <text x="376" y="60" fill="#e6eef6" font-family="monospace" font-size="28">10:23:07</text>
+      <text x="376" y="86" fill="#9aa6b2" font-size="12">UTC-04:00 · Tue, 14 Jul 2026</text>
+
+      <!-- Card 3 -->
+      <rect x="720" y="0" width="320" height="110" rx="12" fill="#0b1220" stroke="#0b1220"/>
+      <text x="736" y="28" fill="#e6eef6" font-size="14" font-weight="700">Asia/Tokyo</text>
+      <text x="736" y="60" fill="#e6eef6" font-family="monospace" font-size="28">23:23:07</text>
+      <text x="736" y="86" fill="#9aa6b2" font-size="12">UTC+09:00 · Wed, 15 Jul 2026</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+  <rect width="100%" height="100%" fill="#071021" rx="12"/>
+  <g transform="translate(60,60)">
+    <text x="0" y="0" fill="#06b6d4" font-family="Arial" font-size="28">Add time zone</text>
+    <g transform="translate(0,36)">
+      <rect x="0" y="0" width="420" height="56" rx="10" fill="#0b1220"/>
+      <text x="16" y="36" fill="#9aa6b2" font-size="14">Select preset or enter IANA zone (e.g. Europe/London)</text>
+      <rect x="460" y="0" width="120" height="56" rx="10" fill="#06b6d4"/>
+      <text x="496" y="36" fill="#041023" font-size="16" font-weight="700">Add</text>
+    </g>
+  </g>
+</svg>

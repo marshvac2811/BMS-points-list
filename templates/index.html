@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMS Points List &amp; Controller Sizing Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1B3A5C; --navy-light: #2C5580; --paper: #FAFAF7; --paper-line: #E4E0D6;
+    --amber: #E8823D; --steel: #6B7684; --green: #4A7C59; --red: #B5544A; --ink: #1C1F24;
+    --ai: #2C5580; --ao: #4A7C59; --di: #8A6D3B; --do: #B5544A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.5; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 60px; }
+  header { margin-bottom: 28px; border-bottom: 1px solid var(--paper-line); padding-bottom: 20px; }
+  header h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 24px; font-weight: 700; color: var(--navy); margin: 0 0 6px 0; }
+  header p { margin: 0; color: var(--steel); font-size: 13px; }
+  .badge-tool { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--navy); border: 1px solid var(--navy); padding: 2px 8px; margin-bottom: 10px; transform: rotate(-1deg); }
+
+  .panel {
+    position: relative; background: #fff; border: 1px solid var(--paper-line);
+    padding: 24px 26px; margin-bottom: 24px;
+    background-image: linear-gradient(var(--paper-line) 1px, transparent 1px), linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+    background-size: 24px 24px; background-position: -1px -1px;
+  }
+  .panel-corner { position: absolute; width: 9px; height: 9px; border-color: var(--navy); opacity: 0.55; }
+  .panel-corner.tl { top: -1px; left: -1px; border-top: 2px solid var(--navy); border-left: 2px solid var(--navy); }
+  .panel-corner.tr { top: -1px; right: -1px; border-top: 2px solid var(--navy); border-right: 2px solid var(--navy); }
+  .panel-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--navy); border-left: 2px solid var(--navy); }
+  .panel-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--navy); border-right: 2px solid var(--navy); }
+  .panel h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--navy); margin: 0 0 4px 0; }
+  .panel .panel-sub { font-size: 11px; color: var(--steel); margin: 0 0 16px 0; }
+
+  .field-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .field-grid.narrow { grid-template-columns: 1fr 1fr; max-width: 400px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--steel); margin-bottom: 6px; font-weight: 600; }
+  .field input { width: 100%; padding: 9px 10px; border: 1px solid var(--paper-line); font-family: 'Inter', sans-serif; font-size: 13px; background: #fff; }
+  .field input:focus { outline: 2px solid var(--navy-light); outline-offset: 1px; border-color: var(--navy); }
+
+  .btn { display: inline-block; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 11px 24px; background: var(--navy); color: #fff; border: none; cursor: pointer; }
+  .btn:hover { background: var(--navy-light); }
+
+  .error-banner { padding: 12px 18px; font-size: 13px; font-weight: 500; margin-bottom: 20px; border-left: 3px solid var(--red); background: #FBEEEC; color: #8A342A; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+  .summary-box { background: #fff; border: 1px solid var(--paper-line); padding: 14px; text-align: center; }
+  .summary-box .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--steel); margin-bottom: 6px; }
+  .summary-box .value { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; color: var(--navy); }
+  .summary-box.ai .value { color: var(--ai); }
+  .summary-box.ao .value { color: var(--ao); }
+  .summary-box.di .value { color: var(--di); }
+  .summary-box.do_ .value { color: var(--do); }
+
+  table.breakdown { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+  table.breakdown td { padding: 8px 4px; border-bottom: 1px solid var(--paper-line); }
+  table.breakdown td:first-child { color: var(--steel); }
+  table.breakdown td:last-child { text-align: right; font-family: 'IBM Plex Mono', monospace; font-weight: 500; color: var(--ink); }
+  table.breakdown tr.highlight td { font-weight: 700; color: var(--navy); }
+
+  .group-heading { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--navy); margin: 18px 0 8px 0; padding-top: 14px; border-top: 1px dashed var(--paper-line); }
+  .group-heading:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  table.points { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.points th { text-align: left; font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--steel); padding: 7px 8px; border-bottom: 1px solid var(--paper-line); }
+  table.points td { padding: 7px 8px; border-bottom: 1px solid var(--paper-line); }
+  table.points td.tag { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--navy); }
+  .sig-chip { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; padding: 1px 7px; border: 1px solid currentColor; }
+  .sig-chip.AI { color: var(--ai); }
+  .sig-chip.AO { color: var(--ao); }
+  .sig-chip.DI { color: var(--di); }
+  .sig-chip.DO { color: var(--do); }
+
+  .disclaimer { font-size: 12px; color: var(--steel); background: #FDF0E6; border-left: 3px solid var(--amber); padding: 12px 16px; margin-top: 20px; }
+  .disclaimer strong { color: #8A4E1F; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge-tool">TENDER-READY DELIVERABLE</span>
+    <h1>BMS Points List &amp; Controller Sizing Tool</h1>
+    <p>Generates a tag-by-tag I/O points list from equipment counts, using standard BMS point templates, plus controller/panel sizing.</p>
+  </header>
+
+  {% if error %}
+  <div class="error-banner">{{ error }}</div>
+  {% endif %}
+
+  <div class="panel">
+    <span class="panel-corner tl"></span><span class="panel-corner tr"></span>
+    <span class="panel-corner bl"></span><span class="panel-corner br"></span>
+    <h2>Equipment Count</h2>
+    <p class="panel-sub">Each unit generates its own set of standard points (e.g. AHU-1, AHU-2 each get their own tags)</p>
+    <form method="POST">
+      <div class="field-grid">
+        <div class="field"><label>AHU</label><input type="number" name="ahu" value="{{ form_values.ahu }}" placeholder="0"></div>
+        <div class="field"><label>Chiller</label><input type="number" name="chiller" value="{{ form_values.chiller }}" placeholder="0"></div>
+        <div class="field"><label>Pump</label><input type="number" name="pump" value="{{ form_values.pump }}" placeholder="0"></div>
+        <div class="field"><label>Standalone VFD</label><input type="number" name="vfd" value="{{ form_values.vfd }}" placeholder="0"></div>
+        <div class="field"><label>Cooling Tower</label><input type="number" name="cooling_tower" value="{{ form_values.cooling_tower }}" placeholder="0"></div>
+      </div>
+
+      <h2 style="margin-top:16px;">Controller / Panel Sizing</h2>
+      <div class="field-grid narrow">
+        <div class="field"><label>Points per Controller</label><input type="number" name="points_per_controller" value="{{ form_values.points_per_controller }}"></div>
+        <div class="field"><label>Controllers per Panel</label><input type="number" name="controllers_per_panel" value="{{ form_values.controllers_per_panel }}"></div>
+      </div>
+
+      <button type="submit" class="btn">Generate Points List</button>
+    </form>
+  </div>
+
+  {% if result %}
+  <div class="summary-grid">
+    <div class="summary-box"><div class="label">Total Points</div><div class="value">{{ result.summary.total_points }}</div></div>
+    <div class="summary-box ai"><div class="label">Analog In (AI)</div><div class="value">{{ result.summary.ai_count }}</div></div>
+    <div class="summary-box ao"><div class="label">Analog Out (AO)</div><div class="value">{{ result.summary.ao_count }}</div></div>
+    <div class="summary-box di"><div class="label">Digital In (DI)</div><div class="value">{{ result.summary.di_count }}</div></div>
+    <div class="summary-box do_"><div class="label">Digital Out (DO)</div><div class="value">{{ result.summary.do_count }}</div></div>
+  </div>
+
+  <div class="panel">
+    <span class="panel-corner tl"></span><span class="panel-corner tr"></span>
+    <span class="panel-corner bl"></span><span class="panel-corner br"></span>
+    <h2>Controller &amp; Panel Sizing</h2>
+    <table class="breakdown">
+      <tr><td>Points per controller</td><td>{{ result.sizing.points_per_controller }}</td></tr>
+      <tr class="highlight"><td>Controllers required</td><td>{{ result.sizing.controller_count }}</td></tr>
+      <tr><td>Controllers per panel</td><td>{{ result.sizing.controllers_per_panel }}</td></tr>
+      <tr class="highlight"><td>Panels required</td><td>{{ result.sizing.panel_count }}</td></tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <span class="panel-corner tl"></span><span class="panel-corner tr"></span>
+    <span class="panel-corner bl"></span><span class="panel-corner br"></span>
+    <h2>Full I/O Points List</h2>
+    <p class="panel-sub">Grouped by equipment instance — copy directly into a points schedule document</p>
+
+    {% for equipment_instance, points in result.grouped.items() %}
+    <div class="group-heading">{{ equipment_instance }}</div>
+    <table class="points">
+      <tr><th>Tag ID</th><th>Description</th><th>Signal Type</th></tr>
+      {% for p in points %}
+      <tr>
+        <td class="tag">{{ p.tag_id }}</td>
+        <td>{{ p.description }}</td>
+        <td><span class="sig-chip {{ p.signal_type }}">{{ p.signal_type }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+  </div>
+
+  <div class="disclaimer">
+    <strong>Standard planning-stage template.</strong> Point templates reflect typical BMS practice per
+    equipment type — actual points vary by project scope, owner requirements, and sequence of operations.
+    Use this as a first-draft starting point, not a final points schedule.
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>
